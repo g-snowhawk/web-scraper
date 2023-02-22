@@ -25,12 +25,7 @@ def savefile(url, src):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    binary = False
-
-    if binary == True:
-        Path(path).write_bytes(src)
-    else:
-        Path(path).write_text(src)
+    Path(path).write_bytes(src)
 
 def get_elements(soup, parser, tag, attr):
     global args, base_url, cache_url, session
@@ -146,7 +141,7 @@ def crawl(url):
     get_elements(soup, tmp, 'script', 'src')
 
     if args.mirror != '':
-        savefile(url, r.text)
+        savefile(url, r.content)
 
     # recurse
     if args.recursive == True:
