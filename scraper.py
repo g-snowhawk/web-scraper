@@ -176,6 +176,10 @@ def crawl(url):
     if args.mirror != '':
         savefile(url, r.content)
 
+    interval = randint(0, args.interval)
+    if interval > 0:
+        sleep(interval)
+
     # recurse
     if args.recursive is True:
         for a in soup.find_all('a'):
@@ -205,9 +209,6 @@ def crawl(url):
 
             try:
                 crawl(url)
-                interval = randint(0, args.interval)
-                if interval > 0:
-                    sleep(interval)
             except HttpError as e:
                 print(e, file=sys.stderr)
 
@@ -263,4 +264,7 @@ if __name__ == '__main__':
     base_url = None
     cache_url = []
     session = None
-    main()
+    try:
+        main()
+    except KeyboardInterrupt as e:
+        sys.exit()
