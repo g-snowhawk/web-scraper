@@ -35,16 +35,14 @@ def savefile(url, src):
         Path(path).write_bytes(src)
     except PermissionError as e:
         print(e, file=sys.stderr)
-    except IsADirectoryError as e:
-        print(e, file=sys.stderr)
+    except IsADirectoryError:
+        savefile(f"{url}/index.tmp", src)
 
 
 def browse(url):
     global args, session
 
-    r = (requests.get(url, stream=True)
-         if args.noscript is True
-         else session.get(url, stream=True))
+    r = requests.get(url, stream=True)
     if r.status_code == 200:
         if r.headers['content-type'] == 'text/css':
             m = re.findall(r'url\([\'"]?(.+?)[\'"]?\)', r.text)
@@ -115,7 +113,8 @@ def get_elements(soup, parser, tag, attr):
 async def rendering(url):
     global session
     r = await session.get(url)
-    await r.html.arender()
+    if re.match('text/html', r.headers['content-type']):
+        await r.html.arender()
     return r
 
 
@@ -138,7 +137,8 @@ def crawl(url):
         else:
             if args.asyncr is not True:
                 r = session.get(url)
-                r.html.render()
+                if re.match('text/html', r.headers['content-type']):
+                    r.html.render()
             else:
                 r = session.run(lambda url=url: rendering(url))[0]
             r.encoding = r.apparent_encoding
@@ -150,13 +150,14 @@ def crawl(url):
     if r.status_code >= 400:
         raise HttpError(str(r.status_code) + ': ' + url)
 
+    if r.url.replace(url, '') == '/':
+        url = r.url
+
     # detect default index
     if re.search('/$', url) is not None:
         for index in ['index.html', 'index.htm']:
             idx = url + index
-            res = (requests.head(idx, allow_redirects=False)
-                   if args.noscript is True
-                   else session.head(idx, allow_redirects=False))
+            res = requests.head(idx, allow_redirects=False)
             if res.status_code == 200 or res.status_code == 302:
                 url = idx
                 break
@@ -266,5 +267,5 @@ if __name__ == '__main__':
     session = None
     try:
         main()
-    except KeyboardInterrupt as e:
+    except KeyboardInterrupt:
         sys.exit()
