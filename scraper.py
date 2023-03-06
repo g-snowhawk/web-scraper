@@ -18,7 +18,7 @@ from urllib.parse import urlparse, urljoin
 try:
     from excludes import known_thirdparties
 except ImportError:
-    print('No excludes')
+    pass
 
 
 class HttpError(Exception):
