@@ -15,6 +15,11 @@ from requests_html import HTMLSession, AsyncHTMLSession
 from time import sleep
 from urllib.parse import urlparse, urljoin
 
+try:
+    from excludes import known_thirdparties
+except ImportError:
+    print('No excludes')
+
 
 class HttpError(Exception):
     pass
@@ -79,6 +84,11 @@ def get_elements(soup, parser, tag, attr):
 
     for el in soup.find_all(tag):
         uri = urlparse(el.get(attr))
+
+        # Known third parties
+        if (callable(known_thirdparties)
+                and known_thirdparties(uri, tag) is True):
+            continue
 
         if uri.netloc != '' and uri.netloc != base_url.netloc:
             continue
