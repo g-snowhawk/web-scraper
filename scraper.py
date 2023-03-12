@@ -86,9 +86,11 @@ def get_elements(soup, parser, tag, attr):
         uri = urlparse(el.get(attr))
 
         # Known third parties
-        if (callable(known_thirdparties)
-                and known_thirdparties(uri, tag) is True):
-            continue
+        try:
+            if known_thirdparties(uri, tag) is True:
+                continue
+        except NameError:
+            pass
 
         if uri.netloc != '' and uri.netloc != base_url.netloc:
             continue
