@@ -9,6 +9,7 @@ import requests
 import sys
 
 from bs4 import BeautifulSoup
+from http.client import RemoteDisconnected
 from pathlib import Path
 from random import randint
 from requests_html import HTMLSession, AsyncHTMLSession
@@ -47,7 +48,12 @@ def savefile(url, src):
 def browse(url):
     global args, session
 
-    r = requests.get(url, stream=True)
+    try:
+        r = requests.get(url, stream=True)
+    except RemoteDisconnected:
+        print(url, file=sys.stderr)
+        return
+
     if r.status_code == 200:
         if r.headers['content-type'] == 'text/css':
             m = re.findall(r'url\([\'"]?(.+?)[\'"]?\)', r.text)
@@ -66,8 +72,10 @@ def browse(url):
 
                 try:
                     browse(ur)
-                except HttpError as e:
-                    print(e, file=sys.stderr)
+                except RemoteDisconnected:
+                    print(ur, file=sys.stderr)
+                except HttpError:
+                    print(ur, file=sys.stderr)
 
         if args.mirror != '':
             savefile(url, r.content)
@@ -118,8 +126,10 @@ def get_elements(soup, parser, tag, attr):
 
         try:
             browse(url)
+        except RemoteDisconnected:
+            print(url, file=sys.stderr)
         except HttpError as e:
-            print(e, file=sys.stderr)
+            print(url, file=sys.stderr)
 
 
 async def rendering(url):
@@ -155,8 +165,11 @@ def crawl(url):
                 r = session.run(lambda url=url: rendering(url))[0]
             r.encoding = r.apparent_encoding
             source = r.html.html
+    except RemoteDisconnected:
+        print(f"Error: {url}", file=sys.stderr)
+        return
     except Exception as e:
-        print(e, file=sys.stderr)
+        print(f"Error: {url}", file=sys.stderr)
         return
 
     if r.status_code >= 400:
@@ -222,8 +235,10 @@ def crawl(url):
 
             try:
                 crawl(url)
-            except HttpError as e:
-                print(e, file=sys.stderr)
+            except RemoteDisconnected:
+                print(url, file=sys.stderr)
+            except HttpError:
+                print(url, file=sys.stderr)
 
 
 def main():
